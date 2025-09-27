@@ -14,7 +14,7 @@ app.use(express.json());
 // Printify API config
 const PRINTIFY_API = 'https://api.printify.com/v1';
 const PRINTIFY_SHOP_ID = process.env.PRINTIFY_SHOP_ID;
-const PRINTIFY_TOKEN = process.env.PRINTIFY_TOKEN;
+const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN; // <- fixed
 
 // PayPal config
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
@@ -85,7 +85,7 @@ app.post('/api/create-paypal-order', async (req, res) => {
   }
 });
 
-// Capture order and send to Printify with real PayPal shipping info
+// Capture order and send to Printify
 app.post('/api/create-order', async (req, res) => {
   const { orderID, line_items } = req.body;
 
@@ -101,10 +101,10 @@ app.post('/api/create-order', async (req, res) => {
       return res.json({ success: false, message: 'Payment not completed' });
     }
 
-    // Extract shipping info from PayPal order
-    const purchaseUnit = captureData.purchase_units[0];
-    const payer = captureData.payer;
-    const address = purchaseUnit.shipping?.address;
+    // Extract shipping info safely
+    const purchaseUnit = captureData.purchase_units?.[0] || {};
+    const payer = captureData.payer || {};
+    const address = purchaseUnit.shipping?.address || {};
 
     const printifyOrder = {
       line_items: line_items.map(item => ({
@@ -116,13 +116,13 @@ app.post('/api/create-order', async (req, res) => {
       address_to: {
         first_name: payer.name?.given_name || 'Customer',
         last_name: payer.name?.surname || '',
-        email: payer.email_address,
-        country: address?.country_code || 'GB',
-        region: address?.admin_area_1 || '',
-        address1: address?.address_line_1 || '',
-        address2: address?.address_line_2 || '',
-        city: address?.admin_area_2 || '',
-        zip: address?.postal_code || '',
+        email: payer.email_address || '',
+        country: address.country_code || 'GB',
+        region: address.admin_area_1 || '',
+        address1: address.address_line_1 || '',
+        address2: address.address_line_2 || '',
+        city: address.admin_area_2 || '',
+        zip: address.postal_code || '',
       },
     };
 
@@ -141,7 +141,3 @@ app.post('/api/create-order', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
