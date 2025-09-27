@@ -14,7 +14,7 @@ app.use(express.json());
 // Printify API config
 const PRINTIFY_API = 'https://api.printify.com/v1';
 const PRINTIFY_SHOP_ID = process.env.PRINTIFY_SHOP_ID;
-const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN; // <- fixed
+const PRINTIFY_TOKEN = process.env.PRINTIFY_API_TOKEN;
 
 // PayPal config
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
@@ -36,17 +36,20 @@ async function getPayPalToken() {
   return data.access_token;
 }
 
-// Get products from Printify
+// ===== UPDATED PRODUCTS ROUTE =====
 app.get('/products', async (req, res) => {
   try {
     const response = await fetch(`${PRINTIFY_API}/shops/${PRINTIFY_SHOP_ID}/products.json`, {
       headers: { Authorization: `Bearer ${PRINTIFY_TOKEN}` },
     });
     const data = await response.json();
-    res.json({ data });
+
+    // Ensure we always send an array
+    const products = Array.isArray(data.data) ? data.data : [];
+    res.json({ data: products });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch products' });
+    console.error('Printify fetch error:', err);
+    res.status(500).json({ data: [], error: 'Failed to fetch products' });
   }
 });
 
